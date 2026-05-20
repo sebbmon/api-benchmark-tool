@@ -48,6 +48,7 @@ services:
   worker:
     build:
       context: ./worker
+    restart: unless-stopped
     environment:
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql://benchmark:benchmark@postgres:5432/benchmark_lab
