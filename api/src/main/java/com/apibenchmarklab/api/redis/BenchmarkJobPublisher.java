@@ -25,6 +25,7 @@ public class BenchmarkJobPublisher {
         payload.put("benchmarkId", benchmark.getId().toString());
         payload.put("url", benchmark.getUrl());
         payload.put("method", benchmark.getMethod());
+        payload.set("headers", benchmark.getHeaders() == null ? objectMapper.createObjectNode() : benchmark.getHeaders());
         payload.set("requestBody", benchmark.getRequestBody() == null ? NullNode.getInstance() : benchmark.getRequestBody());
         payload.put("durationSeconds", benchmark.getDurationSeconds());
         payload.put("concurrency", benchmark.getConcurrency());

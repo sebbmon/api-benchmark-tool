@@ -36,6 +36,7 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       APP_CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      APP_LOCALHOST_REWRITE_HOST: host.docker.internal
     ports:
       - "8080:8080"
     depends_on:
@@ -52,7 +53,7 @@ services:
       DATABASE_URL: postgresql://benchmark:benchmark@postgres:5432/benchmark_lab
       JOB_QUEUE: benchmark_jobs
       REQUEST_TIMEOUT_SECONDS: 10
-      LOCALHOST_REWRITE_HOST: api
+      LOCALHOST_REWRITE_HOST: host.docker.internal
     depends_on:
       postgres:
         condition: service_healthy

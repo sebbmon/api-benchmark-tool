@@ -3,6 +3,7 @@ create table if not exists benchmarks (
     name text not null,
     url text not null,
     method text not null,
+    headers jsonb null,
     request_body jsonb null,
     duration_seconds int not null,
     concurrency int not null,

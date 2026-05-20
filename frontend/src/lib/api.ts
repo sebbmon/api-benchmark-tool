@@ -9,6 +9,7 @@ export type Benchmark = {
   name: string;
   url: string;
   method: BenchmarkMethod;
+  headers?: Record<string, string> | null;
   requestBody?: unknown | null;
   durationSeconds: number;
   concurrency: number;
@@ -56,9 +57,27 @@ export type CreateBenchmarkInput = {
   name: string;
   url: string;
   method: BenchmarkMethod;
+  headers: Record<string, string>;
   requestBody: unknown | null;
   durationSeconds: number;
   concurrency: number;
+};
+
+export type PlaygroundRequestInput = {
+  url: string;
+  method: BenchmarkMethod;
+  headers: Record<string, string>;
+  requestBody: unknown | null;
+};
+
+export type PlaygroundResponse = {
+  statusCode?: number | null;
+  latencyMs: number;
+  responseSizeBytes: number;
+  responseHeaders: Record<string, string[]>;
+  responseBodyPreview: string;
+  responseBodyTruncated: boolean;
+  errorMessage?: string | null;
 };
 
 type ApiError = {
@@ -100,6 +119,13 @@ export function getBenchmark(id: string): Promise<BenchmarkDetail> {
 
 export function createBenchmark(input: CreateBenchmarkInput): Promise<Benchmark> {
   return request<Benchmark>("/api/benchmarks", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function sendPlaygroundRequest(input: PlaygroundRequestInput): Promise<PlaygroundResponse> {
+  return request<PlaygroundResponse>("/api/playground/request", {
     method: "POST",
     body: JSON.stringify(input),
   });

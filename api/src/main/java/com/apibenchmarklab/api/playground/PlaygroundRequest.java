@@ -1,19 +1,15 @@
-package com.apibenchmarklab.api.benchmark;
+package com.apibenchmarklab.api.playground;
 
+import com.apibenchmarklab.api.benchmark.BenchmarkHttpMethod;
 import com.fasterxml.jackson.databind.JsonNode;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.Map;
 
-public record CreateBenchmarkRequest(
-        @NotBlank @Size(max = 160) String name,
+public record PlaygroundRequest(
         @NotBlank @Size(max = 2048) String url,
         @NotNull BenchmarkHttpMethod method,
         @Size(max = 50) Map<String, String> headers,
-        JsonNode requestBody,
-        @Min(1) @Max(60) int durationSeconds,
-        @Min(1) @Max(100) int concurrency) {
+        JsonNode requestBody) {
 }

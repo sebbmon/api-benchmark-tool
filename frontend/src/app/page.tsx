@@ -48,12 +48,20 @@ export default function Home() {
     <main className="min-h-screen bg-slate-50">
       <AppHeader
         action={
-          <Link
-            href="/benchmarks/new"
-            className="inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
-          >
-            New benchmark
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/playground"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 transition hover:bg-slate-50"
+            >
+              Playground
+            </Link>
+            <Link
+              href="/benchmarks/new"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-slate-950 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+            >
+              New benchmark
+            </Link>
+          </div>
         }
       />
 

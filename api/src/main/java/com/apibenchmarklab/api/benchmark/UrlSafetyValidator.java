@@ -31,12 +31,15 @@ public class UrlSafetyValidator {
         if ("example.com".equals(host) || "www.example.com".equals(host)) {
             return uri;
         }
+        if ("host.docker.internal".equals(host)) {
+            return uri;
+        }
 
         if (isIpAddress(host) && isPrivateIp(host)) {
             throw new IllegalArgumentException("Private IP addresses are blocked except localhost.");
         }
 
-        throw new IllegalArgumentException("Only localhost and example.com targets are allowed in the MVP.");
+        throw new IllegalArgumentException("Only localhost, host.docker.internal, and example.com targets are allowed in the MVP.");
     }
 
     private URI parse(String rawUrl) {

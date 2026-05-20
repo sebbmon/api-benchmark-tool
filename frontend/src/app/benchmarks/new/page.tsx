@@ -2,20 +2,67 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import {
+  HeadersEditor,
+  headerRowsFromRecord,
+  headersToRecord,
+  type HeaderRow,
+} from "@/components/HeadersEditor";
 import { type BenchmarkMethod, createBenchmark } from "@/lib/api";
+import { BENCHMARK_DRAFT_STORAGE_KEY, type BenchmarkDraft } from "@/lib/benchmarkDraft";
 
 export default function NewBenchmarkPage() {
   const router = useRouter();
   const [name, setName] = useState("Local API smoke test");
   const [url, setUrl] = useState("http://localhost:8080/api/test-target");
   const [method, setMethod] = useState<BenchmarkMethod>("GET");
+  const [headers, setHeaders] = useState<HeaderRow[]>(() => headerRowsFromRecord());
   const [requestBody, setRequestBody] = useState("");
   const [durationSeconds, setDurationSeconds] = useState(10);
   const [concurrency, setConcurrency] = useState(10);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadDraft = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("from") !== "playground") {
+        return;
+      }
+
+      const rawDraft = window.sessionStorage.getItem(BENCHMARK_DRAFT_STORAGE_KEY);
+      if (!rawDraft) {
+        return;
+      }
+
+      try {
+        const draft = JSON.parse(rawDraft) as Partial<BenchmarkDraft>;
+        if (typeof draft.url === "string") {
+          setUrl(draft.url);
+        }
+        if (draft.method === "GET" || draft.method === "POST") {
+          setMethod(draft.method);
+        }
+        if (draft.headers && typeof draft.headers === "object") {
+          setHeaders(headerRowsFromRecord(draft.headers));
+        }
+        if (typeof draft.requestBody === "string") {
+          setRequestBody(draft.requestBody);
+        }
+        setName("Playground endpoint benchmark");
+      } catch {
+        setError("Could not load playground draft.");
+      } finally {
+        window.sessionStorage.removeItem(BENCHMARK_DRAFT_STORAGE_KEY);
+      }
+    }, 0);
+
+    return () => {
+      window.clearTimeout(loadDraft);
+    };
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,6 +70,7 @@ export default function NewBenchmarkPage() {
     setError(null);
 
     try {
+      const parsedHeaders = headersToRecord(headers);
       let parsedBody: unknown | null = null;
       if (method === "POST" && requestBody.trim()) {
         parsedBody = JSON.parse(requestBody);
@@ -32,6 +80,7 @@ export default function NewBenchmarkPage() {
         name,
         url,
         method,
+        headers: parsedHeaders,
         requestBody: parsedBody,
         durationSeconds,
         concurrency,
@@ -48,12 +97,20 @@ export default function NewBenchmarkPage() {
     <main className="min-h-screen bg-slate-50">
       <AppHeader
         action={
-          <Link
-            href="/"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 transition hover:bg-slate-50"
-          >
-            Dashboard
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/playground"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 transition hover:bg-slate-50"
+            >
+              Playground
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-950 transition hover:bg-slate-50"
+            >
+              Dashboard
+            </Link>
+          </div>
         }
       />
 
@@ -61,7 +118,7 @@ export default function NewBenchmarkPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-950">New benchmark</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Targets are restricted to localhost and example.com for this MVP.
+            Targets are restricted to localhost, host.docker.internal, and example.com for this MVP.
           </p>
         </div>
 
@@ -135,6 +192,8 @@ export default function NewBenchmarkPage() {
               />
             </label>
           </div>
+
+          <HeadersEditor rows={headers} onChange={setHeaders} />
 
           <label className="block">
             <span className="text-sm font-medium text-slate-700">Request body JSON</span>

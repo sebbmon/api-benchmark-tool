@@ -75,12 +75,12 @@ def validate_target_url(url: str) -> ParseResult:
     host = parsed.hostname.lower()
     if is_localhost(host):
         return parsed
-    if host in {"example.com", "www.example.com"}:
+    if host in {"example.com", "www.example.com", "host.docker.internal"}:
         return parsed
     if is_private_ip(host):
         raise ValueError("Private IP addresses are blocked except localhost.")
 
-    raise ValueError("Only localhost and example.com targets are allowed in the MVP.")
+    raise ValueError("Only localhost, host.docker.internal, and example.com targets are allowed in the MVP.")
 
 
 def rewrite_localhost_for_compose(parsed: ParseResult) -> str:
@@ -158,6 +158,23 @@ def build_metric(total: int, failed: int, latencies: list[float], elapsed_second
         "p95LatencyMs": percentile(latencies, 0.95),
         "errorRate": failed / total if total else 0.0,
     }
+
+
+def normalize_headers(headers: Any) -> dict[str, str]:
+    if headers is None:
+        return {}
+    if not isinstance(headers, dict):
+        raise ValueError("Headers must be an object.")
+
+    normalized: dict[str, str] = {}
+    for key, value in headers.items():
+        if not isinstance(key, str):
+            raise ValueError("Header names must be strings.")
+        if not isinstance(value, str):
+            raise ValueError("Header values must be strings.")
+        if key:
+            normalized[key] = value
+    return normalized
 
 
 async def wait_for_dependencies() -> tuple[Redis, asyncpg.Pool]:
@@ -298,6 +315,7 @@ async def run_one_request(
     session: aiohttp.ClientSession,
     method: str,
     url: str,
+    headers: dict[str, str],
     request_body: Any,
     stats: BenchmarkStats,
 ) -> None:
@@ -308,7 +326,7 @@ async def run_one_request(
         if method == "POST" and request_body is not None:
             kwargs["json"] = request_body
 
-        async with session.request(method, url, **kwargs) as response:
+        async with session.request(method, url, headers=headers, **kwargs) as response:
             await response.read()
             successful = 200 <= response.status < 400
     except (aiohttp.ClientError, asyncio.TimeoutError, socket.gaierror):
@@ -322,12 +340,13 @@ async def requester(
     session: aiohttp.ClientSession,
     method: str,
     url: str,
+    headers: dict[str, str],
     request_body: Any,
     stats: BenchmarkStats,
     stop_at: float,
 ) -> None:
     while time.perf_counter() < stop_at:
-        await run_one_request(session, method, url, request_body, stats)
+        await run_one_request(session, method, url, headers, request_body, stats)
 
 
 async def metric_ticker(
@@ -352,6 +371,7 @@ async def process_job(redis: Redis, pool: asyncpg.Pool, payload: str) -> None:
     parsed_url = validate_target_url(job["url"])
     request_url = rewrite_localhost_for_compose(parsed_url)
     method = job["method"].upper()
+    headers = normalize_headers(job.get("headers"))
     request_body = job.get("requestBody")
     duration_seconds = min(int(job["durationSeconds"]), 60)
     concurrency = min(int(job["concurrency"]), 100)
@@ -361,7 +381,7 @@ async def process_job(redis: Redis, pool: asyncpg.Pool, payload: str) -> None:
 
     print(
         f"starting benchmark {benchmark_id} {method} {request_url} "
-        f"duration={duration_seconds}s concurrency={concurrency}",
+        f"duration={duration_seconds}s concurrency={concurrency} headers={len(headers)}",
         flush=True,
     )
 
@@ -376,7 +396,7 @@ async def process_job(redis: Redis, pool: asyncpg.Pool, payload: str) -> None:
 
     async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
         request_tasks = [
-            asyncio.create_task(requester(session, method, request_url, request_body, stats, stop_at))
+            asyncio.create_task(requester(session, method, request_url, headers, request_body, stats, stop_at))
             for _ in range(concurrency)
         ]
         ticker_task = asyncio.create_task(metric_ticker(redis, pool, benchmark_id, stats, stop_at))

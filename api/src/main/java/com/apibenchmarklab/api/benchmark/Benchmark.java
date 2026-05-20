@@ -30,6 +30,10 @@ public class Benchmark {
     @Column(name = "request_body", columnDefinition = "jsonb")
     private JsonNode requestBody;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private JsonNode headers;
+
     @Column(name = "duration_seconds", nullable = false)
     private int durationSeconds;
 
@@ -55,12 +59,14 @@ public class Benchmark {
             String name,
             String url,
             String method,
+            JsonNode headers,
             JsonNode requestBody,
             int durationSeconds,
             int concurrency) {
         this.name = name;
         this.url = url;
         this.method = method;
+        this.headers = headers;
         this.requestBody = requestBody;
         this.durationSeconds = durationSeconds;
         this.concurrency = concurrency;
@@ -118,6 +124,14 @@ public class Benchmark {
 
     public void setRequestBody(JsonNode requestBody) {
         this.requestBody = requestBody;
+    }
+
+    public JsonNode getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(JsonNode headers) {
+        this.headers = headers;
     }
 
     public int getDurationSeconds() {

@@ -1,10 +1,13 @@
 package com.apibenchmarklab.api.benchmark;
 
+import com.apibenchmarklab.api.http.HttpHeaderSanitizer;
 import com.apibenchmarklab.api.redis.BenchmarkJobPublisher;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +20,7 @@ public class BenchmarkService {
     private final BenchmarkMetricPointRepository metricPointRepository;
     private final BenchmarkJobPublisher jobPublisher;
     private final UrlSafetyValidator urlSafetyValidator;
+    private final HttpHeaderSanitizer httpHeaderSanitizer;
     private final ObjectMapper objectMapper;
 
     public BenchmarkService(
@@ -25,23 +29,27 @@ public class BenchmarkService {
             BenchmarkMetricPointRepository metricPointRepository,
             BenchmarkJobPublisher jobPublisher,
             UrlSafetyValidator urlSafetyValidator,
+            HttpHeaderSanitizer httpHeaderSanitizer,
             ObjectMapper objectMapper) {
         this.benchmarkRepository = benchmarkRepository;
         this.resultRepository = resultRepository;
         this.metricPointRepository = metricPointRepository;
         this.jobPublisher = jobPublisher;
         this.urlSafetyValidator = urlSafetyValidator;
+        this.httpHeaderSanitizer = httpHeaderSanitizer;
         this.objectMapper = objectMapper;
     }
 
     public BenchmarkResponse create(CreateBenchmarkRequest request) {
         urlSafetyValidator.validate(request.url());
+        Map<String, String> headers = httpHeaderSanitizer.normalize(request.headers());
         validateRequestBodySize(request);
 
         Benchmark benchmark = new Benchmark(
                 request.name().trim(),
                 request.url().trim(),
                 request.method().name(),
+                toJson(headers),
                 request.requestBody(),
                 request.durationSeconds(),
                 request.concurrency());
@@ -81,5 +89,9 @@ public class BenchmarkService {
         } catch (JsonProcessingException ex) {
             throw new IllegalArgumentException("Request body JSON is invalid.");
         }
+    }
+
+    private JsonNode toJson(Map<String, String> headers) {
+        return objectMapper.valueToTree(headers);
     }
 }
