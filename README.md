@@ -704,7 +704,7 @@ Stores one final summary per benchmark run.
 
 This project is designed for local MVP usage and deliberately restricts where benchmarks can be sent.
 
-Allowed target hosts:
+Allowed target hosts (Initial stage):
 
 - `localhost`
 - `127.0.0.1`
