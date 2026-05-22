@@ -845,28 +845,6 @@ From `api/`:
 ./mvnw test
 ```
 
-On Windows PowerShell:
-
-```powershell
-.\mvnw.cmd test
-```
-
-### Frontend Lint
-
-From `frontend/`:
-
-```bash
-npm run lint
-```
-
-### Frontend Production Build
-
-From `frontend/`:
-
-```bash
-npm run build
-```
-
 ### End-to-End Smoke Test
 
 1. Start the stack:
